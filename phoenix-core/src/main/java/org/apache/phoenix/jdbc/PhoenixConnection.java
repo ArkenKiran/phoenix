@@ -406,6 +406,8 @@ public class PhoenixConnection implements Connection, MetaDataMutated, SQLClosea
         }
         this.sourceOfOperation =
                 this.services.getProps().get(QueryServices.SOURCE_OPERATION_ATTRIB, null);
+        //Add a property to check if query id logger is enabled
+        //Change the log Appender programmatically
     }
 
     private static void checkScn(Long scnParam) throws SQLException {
