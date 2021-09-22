@@ -188,6 +188,7 @@ public class UpsertCompiler {
                 new RowMutationState(columnValues, columnValueSize,
                         statement.getConnection().getStatementExecutionCounter(), rowTsColInfo,
                         onDupKeyBytes);
+        //set the query identifier to thread context for logger to pick
         rowMutationState.setQueryId(statement.getQueryId());
         mutation.put(ptr, rowMutationState);
     }
