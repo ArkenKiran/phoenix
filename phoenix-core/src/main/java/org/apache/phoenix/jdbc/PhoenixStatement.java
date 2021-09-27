@@ -294,7 +294,7 @@ public class PhoenixStatement implements Statement, SQLCloseable {
     private PhoenixResultSet executeQuery(final CompilableStatement stmt,
         final boolean doRetryOnMetaNotFoundError, final QueryLogger queryLogger) throws SQLException {
         GLOBAL_SELECT_SQL_COUNTER.increment();
-        
+
         try {
             QueryIdentifierUtil.setQuerIDInMDC(getConnection().getQueryServices().getConfiguration(), queryId);
             return CallRunner.run(
@@ -304,7 +304,7 @@ public class PhoenixStatement implements Statement, SQLCloseable {
                     final long startTime = EnvironmentEdgeManager.currentTimeMillis();
                     try {
                         PhoenixConnection conn = getConnection();
-                        
+
                         if (conn.getQueryServices().isUpgradeRequired() && !conn.isRunningUpgrade()
                                 && stmt.getOperation() != Operation.UPGRADE) {
                             throw new UpgradeRequiredException();
@@ -359,7 +359,7 @@ public class PhoenixStatement implements Statement, SQLCloseable {
                         }
                         throw e;
                     }catch (RuntimeException e) {
-                        
+
                         // FIXME: Expression.evaluate does not throw SQLException
                         // so this will unwrap throws from that.
                         if (e.getCause() instanceof SQLException) {
@@ -367,7 +367,7 @@ public class PhoenixStatement implements Statement, SQLCloseable {
                         }
                         throw e;
                     } finally {
-                        // Regardless of whether the query was successfully handled or not, 
+                        // Regardless of whether the query was successfully handled or not,
                         // update the time spent so far. If needed, we can separate out the
                         // success times and failure times.
                         GLOBAL_QUERY_TIME.update(EnvironmentEdgeManager.currentTimeMillis() - startTime);
@@ -387,7 +387,7 @@ public class PhoenixStatement implements Statement, SQLCloseable {
             QueryIdentifierUtil.removeQuerIDInMDC(getConnection().getQueryServices().getConfiguration());
         }
     }
-    
+
     protected int executeMutation(final CompilableStatement stmt) throws SQLException {
       return executeMutation(stmt, true);
     }
