@@ -50,6 +50,7 @@ import java.sql.Struct;
 import java.text.Format;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,11 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Consistency;
 import org.apache.htrace.Sampler;
 import org.apache.htrace.TraceScope;
+import org.apache.log4j.Appender;
+import org.apache.log4j.DailyRollingFileAppender;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.apache.phoenix.call.CallRunner;
 import org.apache.phoenix.exception.SQLExceptionCode;
 import org.apache.phoenix.exception.SQLExceptionInfo;
@@ -141,6 +147,7 @@ import com.google.common.collect.Lists;
  */
 public class PhoenixConnection implements Connection, MetaDataMutated, SQLCloseable {
     private final String url;
+    private final Boolean phoenixQueryIdLogEnabled;
     private String schema;
     private final ConnectionQueryServices services;
     private final Properties info;
@@ -406,8 +413,8 @@ public class PhoenixConnection implements Connection, MetaDataMutated, SQLClosea
         }
         this.sourceOfOperation =
                 this.services.getProps().get(QueryServices.SOURCE_OPERATION_ATTRIB, null);
-        //Add a property to check if query id logger is enabled
-        //Change the log Appender programmatically
+        this.phoenixQueryIdLogEnabled = Boolean.valueOf(this.services.getProps()
+            .get(QueryServices.PHOENIX_QUERY_IDENTIFIER_LOGGING_ENABLED, "false"));
     }
 
     private static void checkScn(Long scnParam) throws SQLException {

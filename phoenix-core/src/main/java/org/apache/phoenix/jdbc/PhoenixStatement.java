@@ -53,7 +53,6 @@ import org.apache.phoenix.call.CallRunner;
 import org.apache.phoenix.compile.BaseMutationPlan;
 import org.apache.phoenix.compile.CloseStatementCompiler;
 import org.apache.phoenix.compile.ColumnProjector;
-import org.apache.phoenix.compile.ColumnResolver;
 import org.apache.phoenix.compile.CreateFunctionCompiler;
 import org.apache.phoenix.compile.CreateIndexCompiler;
 import org.apache.phoenix.compile.CreateSchemaCompiler;
@@ -189,6 +188,7 @@ import org.apache.phoenix.util.ParseNodeUtil;
 import org.apache.phoenix.util.ParseNodeUtil.RewriteResult;
 import org.apache.phoenix.util.PhoenixContextExecutor;
 import org.apache.phoenix.util.PhoenixRuntime;
+import org.apache.phoenix.util.QueryIdentifierUtil;
 import org.apache.phoenix.util.QueryUtil;
 import org.apache.phoenix.util.SQLCloseable;
 import org.apache.phoenix.util.SQLCloseables;
@@ -200,6 +200,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.math.IntMath;
+
 /**
  * 
  * JDBC Statement implementation of Phoenix.
@@ -295,6 +296,7 @@ public class PhoenixStatement implements Statement, SQLCloseable {
         GLOBAL_SELECT_SQL_COUNTER.increment();
         
         try {
+            QueryIdentifierUtil.setQuerIDInMDC(getConnection().getQueryServices().getConfiguration(), queryId);
             return CallRunner.run(
                 new CallRunner.CallableThrowable<PhoenixResultSet, SQLException>() {
                 @Override
@@ -381,6 +383,8 @@ public class PhoenixStatement implements Statement, SQLCloseable {
             Throwables.propagateIfInstanceOf(e, SQLException.class);
             Throwables.propagate(e);
             throw new IllegalStateException(); // Can't happen as Throwables.propagate() always throws
+        } finally {
+            QueryIdentifierUtil.removeQuerIDInMDC(getConnection().getQueryServices().getConfiguration());
         }
     }
     
@@ -396,6 +400,7 @@ public class PhoenixStatement implements Statement, SQLCloseable {
         }
 	    GLOBAL_MUTATION_SQL_COUNTER.increment();
         try {
+            QueryIdentifierUtil.setQuerIDInMDC(getConnection().getQueryServices().getConfiguration(), queryId);
             return CallRunner
                     .run(
                         new CallRunner.CallableThrowable<Integer, SQLException>() {
@@ -458,6 +463,8 @@ public class PhoenixStatement implements Statement, SQLCloseable {
             Throwables.propagateIfInstanceOf(e, SQLException.class);
             Throwables.propagate(e);
             throw new IllegalStateException(); // Can't happen as Throwables.propagate() always throws
+        } finally {
+            QueryIdentifierUtil.removeQuerIDInMDC(connection.getQueryServices().getConfiguration());
         }
     }
 

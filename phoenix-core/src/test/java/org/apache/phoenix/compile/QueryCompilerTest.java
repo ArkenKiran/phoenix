@@ -49,6 +49,10 @@ import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Appender;
+import org.apache.log4j.DailyRollingFileAppender;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PatternLayout;
 import org.apache.phoenix.compile.JoinCompiler.JoinTable;
 import org.apache.phoenix.compile.JoinCompiler.Table;
 import org.apache.phoenix.compile.OrderByCompiler.OrderBy;
@@ -90,6 +94,7 @@ import org.apache.phoenix.util.ByteUtil;
 import org.apache.phoenix.util.EnvironmentEdgeManager;
 import org.apache.phoenix.util.PhoenixRuntime;
 import org.apache.phoenix.util.PropertiesUtil;
+import org.apache.phoenix.util.QueryIdentifierUtil;
 import org.apache.phoenix.util.QueryUtil;
 import org.apache.phoenix.util.ScanUtil;
 import org.apache.phoenix.util.SchemaUtil;
@@ -99,8 +104,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
-
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 
@@ -116,7 +121,7 @@ import com.google.common.collect.Lists;
         value="RV_RETURN_VALUE_IGNORED",
         justification="Test code.")
 public class QueryCompilerTest extends BaseConnectionlessQueryTest {
-
+    Logger logger = LoggerFactory.getLogger(QueryCompilerTest.class);
     @Before
     public void setUp() {
         ParseNodeFactory.setTempAliasCounterValue(0);
@@ -6799,6 +6804,8 @@ public class QueryCompilerTest extends BaseConnectionlessQueryTest {
                         "UPSERT INTO " + ATABLE + " (organization_id, entity_id, a_integer) "
                                 + "VALUES (?,?,?)");
         stmt.setQueryId(queryId);
+        //TODO: See and optimal way to do it
+        QueryIdentifierUtil.setQuerIDInMDC(stmt.getConnection().getQueryServices().getConfiguration(), queryId);
         stmt.setString(1, "AAA");
         stmt.setString(2, "BBB");
         stmt.setInt(3, 1);
@@ -6806,6 +6813,7 @@ public class QueryCompilerTest extends BaseConnectionlessQueryTest {
             MutationPlan mutationPlan = stmt.compileMutation();
             MutationState mutationState = mutationPlan.execute();
             Iterator<Pair<byte[], List<Mutation>>> iterator = mutationState.toMutations();
+            logger.info("Testing queryId logLine");
             while (iterator.hasNext()) {
                 Pair<byte[], List<Mutation>> entry = iterator.next();
                 List<Mutation> mutations = entry.getSecond();
