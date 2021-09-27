@@ -36,7 +36,7 @@ public class PrimaryKeyConstraint extends NamedNode {
     private final Map<ColumnName, Pair<ColumnName, Boolean>> columnNameToRowTimestamp;
     private final int numColumnsWithRowTimestamp;
     
-    PrimaryKeyConstraint(String name, List<ColumnDefInPkConstraint> columnDefs) {
+    public PrimaryKeyConstraint(String name, List<ColumnDefInPkConstraint> columnDefs) {
         super(name);
         if (columnDefs == null) {
             this.columns = Collections.<Pair<ColumnName, SortOrder>>emptyList();
@@ -91,5 +91,19 @@ public class PrimaryKeyConstraint extends NamedNode {
     public boolean equals(Object obj) {
         return super.equals(obj);
     }
-    
+
+    @Override
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        for (Pair<ColumnName, SortOrder> entry : columns) {
+            if(sb.length()!=0) {
+                sb.append(", ");
+            }
+            sb.append(entry.getFirst());
+            if(entry.getSecond() != SortOrder.getDefault()) {
+                sb.append(" "+entry.getSecond());
+            }
+        }
+        return sb.toString();
+    }
 }

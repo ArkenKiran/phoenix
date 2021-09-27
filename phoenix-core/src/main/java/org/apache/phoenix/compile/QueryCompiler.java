@@ -126,6 +126,7 @@ public class QueryCompiler {
         this.resolver = resolver;
         this.scan = new Scan();
         if (statement.getQueryId() != null) {
+            //set the query identifier to thread context for logger to pick
             this.scan.setId(statement.getQueryId());
         }
         this.targetColumns = targetColumns;

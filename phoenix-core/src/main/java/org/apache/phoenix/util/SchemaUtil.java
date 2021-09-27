@@ -47,6 +47,7 @@ import java.util.TreeSet;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Strings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -670,7 +671,7 @@ public class SchemaUtil {
         if (schemaName == null || schemaName.length() == 0) {
             return "\"" + tableName + "\"";
         }
-        return "\"" + schemaName + "\"." + "\"" + tableName + "\"";
+        return "\"" + schemaName + "\"" + QueryConstants.NAME_SEPARATOR + "\"" + tableName + "\"";
     }
 
     protected static PhoenixConnection addMetaDataColumn(PhoenixConnection conn, long scn, String columnDef) throws SQLException {
@@ -1251,6 +1252,79 @@ public class SchemaUtil {
         return columnParseNode.getName();
     }
 
+    public static String getFullTableNameWithQuotes(String schemaName, String tableName,
+    boolean schemaNameCaseSensitive, boolean tableNameCaseSensitive) {
+        String fullTableName;
+
+        if (tableNameCaseSensitive) {
+            fullTableName = "\"" + tableName + "\"";
+        } else {
+            fullTableName = tableName;
+        }
+
+        if(schemaName != null && schemaName.length() != 0) {
+            if (schemaNameCaseSensitive) {
+                fullTableName = "\"" + schemaName + "\"" + QueryConstants.NAME_SEPARATOR + fullTableName;
+            } else {
+                fullTableName = schemaName + QueryConstants.NAME_SEPARATOR + fullTableName;
+            }
+        }
+        return fullTableName;
+    }
+
+    public static String getFullTableNameWithQuotes(String schemaName, String tableName) {
+        return getFullTableNameWithQuotes(schemaName, tableName,
+                quotesNeededForSchema(schemaName), quotesNeededForTable(tableName));
+    }
+
+    private static boolean quotesNeededForSchema(String name) {
+        if (Strings.isNullOrEmpty(name) || name.equals(QueryConstants.DEFAULT_COLUMN_FAMILY)) {
+            return false;
+        }
+        return quotesNeededForTable(name);
+    }
+
+    private static boolean quotesNeededForColumn(String name) {
+        if (!name.equals("_INDEX_ID") && name.startsWith("_")) {
+            return true;
+        }
+        return isQuotesNeeded(name) || containsLowerCase(name);
+    }
+
+    private static boolean quotesNeededForTable(String name) {
+        if (name.startsWith("_")) {
+            return true;
+        }
+        return isQuotesNeeded(name) || containsLowerCase(name);
+    }
+
+    public static String formatSchemaName(String name) {
+        if (quotesNeededForSchema(name)) {
+            name = "\"" + name + "\"";
+        }
+        return name;
+    }
+
+    public static String formatColumnName(String name) {
+        if (quotesNeededForColumn(name)) {
+            name = "\"" + name + "\"";
+        }
+        return name;
+    }
+
+    public static boolean containsLowerCase(String name) {
+        if (Strings.isNullOrEmpty(name)) {
+            return false;
+        }
+        for (int i=0; i<name.toCharArray().length; i++) {
+            char charAtI = name.charAt(i);
+            if (Character.isLowerCase(charAtI)){
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * This function is needed so that SchemaExtractionTool returns a valid DDL with correct
      * table/schema name that can be parsed
@@ -1271,15 +1345,21 @@ public class SchemaUtil {
             pTableName = "\""+pTableName+"\"";
         }
         if(tableNameNeedsQuotes || schemaNameNeedsQuotes) {
-            pTableFullName = pSchemaName + "." + pTableName;
+            if (!Strings.isNullOrEmpty(pSchemaName)) {
+                return String.format("%s.%s", pSchemaName, pTableName);
+            } else {
+                return pTableName;
+            }
         }
-
         return pTableFullName;
     }
 
     private static boolean isQuotesNeeded(String name) {
         // first char numeric or non-underscore
-        if(!Character.isAlphabetic(name.charAt(0)) && name.charAt(0)!='_') {
+        if (Strings.isNullOrEmpty(name)) {
+            return false;
+        }
+        if (!Character.isAlphabetic(name.charAt(0)) && name.charAt(0)!='_') {
             return true;
         }
         // for all other chars
