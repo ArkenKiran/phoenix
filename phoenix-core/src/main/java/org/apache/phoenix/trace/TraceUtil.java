@@ -19,11 +19,14 @@ package org.apache.phoenix.trace;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.phoenix.jdbc.PhoenixConnection;
-
+import org.apache.phoenix.query.QueryServices;
 
 import java.util.concurrent.Callable;
 
@@ -40,6 +43,15 @@ public final class TraceUtil {
 
   public static Object withTracing(PhoenixConnection connection, String toString) {
     return null;
+  }
+
+  public static Span createSpanIfConfigured(String spanName, Configuration configuration) {
+    //We create a valid span if TRACING_ENABLED flag is true.
+    if (configuration.getBoolean(QueryServices.TRACING_ENABLED, false)) {
+      return Span.getInvalid();
+    } else {
+      return getGlobalTracer().spanBuilder(spanName).startSpan();
+    }
   }
 
   public static class TraceCallable<V> implements Callable<V> {
@@ -74,5 +86,12 @@ public final class TraceUtil {
     public Callable<V> getImpl() {
       return impl;
     }
+  }
+
+  public static Span noSampleRecordSpan(Span span){
+    if(span != null){
+      Span.wrap(span.getSpanContext());
+    }
+    return Span.getInvalid();
   }
 }

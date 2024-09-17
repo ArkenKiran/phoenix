@@ -63,7 +63,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -323,8 +324,9 @@ public class PhoenixStatement implements PhoenixMonitoredStatement, SQLCloseable
     private PhoenixResultSet executeQuery(final CompilableStatement stmt,
                                           final boolean doRetryOnMetaNotFoundError, final QueryLogger queryLogger, final boolean noCommit) throws SQLException {
         GLOBAL_SELECT_SQL_COUNTER.increment();
-
-        try {
+        Span span = TraceUtil.createSpanIfConfigured("execute-query",
+            connection.getQueryServices().getConfiguration());
+        try (Scope scope = span.makeCurrent()){
             return CallRunner
                     .run(new CallRunner.CallableThrowable<PhoenixResultSet, SQLException>() {
                         @Override public PhoenixResultSet call() throws SQLException {
@@ -475,6 +477,8 @@ public class PhoenixStatement implements PhoenixMonitoredStatement, SQLCloseable
             Throwables.propagateIfInstanceOf(e, SQLException.class);
             Throwables.propagate(e);
             throw new IllegalStateException(); // Can't happen as Throwables.propagate() always throws
+        } finally {
+            span.end();
         }
     }
 
@@ -514,7 +518,9 @@ public class PhoenixStatement implements PhoenixMonitoredStatement, SQLCloseable
                 build().buildException();
         }
 	    GLOBAL_MUTATION_SQL_COUNTER.increment();
-        try {
+        Span span = TraceUtil.createSpanIfConfigured("execute-mutation",
+            connection.getQueryServices().getConfiguration());
+        try (Scope scope = span.makeCurrent()) {
             return CallRunner
                     .run(
                         new CallRunner.CallableThrowable<Integer, SQLException>() {
@@ -655,6 +661,8 @@ public class PhoenixStatement implements PhoenixMonitoredStatement, SQLCloseable
             Throwables.propagateIfInstanceOf(e, SQLException.class);
             Throwables.propagate(e);
             throw new IllegalStateException(); // Can't happen as Throwables.propagate() always throws
+        } finally {
+            span.end();
         }
     }
 
